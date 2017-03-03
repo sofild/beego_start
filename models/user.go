@@ -7,6 +7,7 @@ import (
 	"github.com/astaxie/beego/orm"     //引入beego的orm
 	_ "github.com/go-sql-driver/mysql" //引入beego的mysql驱动
 	"time"
+    "fmt"
 )
 
 type User struct {
@@ -24,8 +25,10 @@ func init() {
 	var mysql_user string = beego.AppConfig.String("mysql_user")
 	var mysql_pass string = beego.AppConfig.String("mysql_pass")
 	var mysql_db string = beego.AppConfig.String("mysql_db")
-	var link string = mysql_user + ":" + mysql_pass + "@tcp(" + mysql_host + ":" + mysql_port + ")/" + mysql_db + "?charset=utf8"
-	orm.RegisterDriver("mysql", orm.DRMySQL)
+	//var link string = mysql_user + ":" + mysql_pass + "@tcp(" + mysql_host + ":" + mysql_port + ")/" + mysql_db + "?charset=utf8"
+	var link string = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8", mysql_user, mysql_pass, mysql_host, mysql_port, mysql_db);
+    fmt.Println(link)
+    orm.RegisterDriver("mysql", orm.DRMySQL)
 	orm.RegisterDataBase("default", "mysql", link)
     orm.RunSyncdb("default", false, true)
 }
@@ -39,18 +42,19 @@ func AddUser(username string, password string) (int64, error) {
 	user.Addtime = time.Now().Unix()
 	user.Logintime = time.Now().Unix()
 	//user := User{Username:username, Password:MD5(password), Addtime:time.Now().Unix(), Logintime:time.Now().Unix()}
-	id, err := o.Insert(&user)
+	id, err := o.Insert(user)
 	return id, err
 }
 
 func FindUser(username string, password string) int64 {
 	o := orm.NewOrm()
     o.Using("default")
-	user := new(User)
-	user.Username = username
-	user.Password = MD5(password)
-	o.Read(user)
-	return user.Id
+	var user User
+    err := o.QueryTable("user").Filter("username",username).Filter("password", MD5(password)).One(&user)
+    if err != nil{
+        return nil
+    }
+    return user
 }
 
 func MD5(text string) string {

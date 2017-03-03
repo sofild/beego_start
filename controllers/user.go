@@ -25,8 +25,14 @@ func (c *UserController) DoLogin() {
 	if err := c.ParseForm(&u); err != nil {
 		beego.Info(err)
 	} else {
-		c.Ctx.WriteString("username:" + u.Username + " | password:" + u.Password)
-	}
+	    uinfo := models.FindUser(u.username,u.password)
+        if uinfo==nil {
+            c.Ctx.WriteString("Login Failed.")
+        }
+        else{
+            c.Ctx.WriteString("UID:"+uinfo.Id)
+        }
+    }
 }
 
 func (c *UserController) Reg(){
