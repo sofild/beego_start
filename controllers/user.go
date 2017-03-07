@@ -3,9 +3,10 @@ package controllers
 import (
 	"fmt"
 	"github.com/astaxie/beego"
-    "github.com/astaxie/beego/session"
+	"github.com/astaxie/beego/session"
 	"hello/models"
 	"strconv"
+	"time"
 )
 
 type UserController struct {
@@ -19,9 +20,14 @@ type User struct {
 
 var globalSession *session.Manager
 
-func init(){
-    globalSession,_ = session.NewManager("file", `{"cookieName":"gosessionid","gclifetime":3600, "ProviderConfig":"./tmp"}`)
-    go globalSession.GC()
+func init() {
+	var sessionConfig = new(session.ManagerConfig)
+	sessionConfig.CookieName = "gosessionid"
+	sessionConfig.Gclifetime = 3600
+
+	globalSession, _ = session.NewManager("memery", sessionConfig)
+	//globalSession,_ = session.NewManager("memery", `{"cookieName":"gosessionid","gclifetime":3600}`)
+	//go globalSession.GC()
 }
 
 func (c *UserController) Login() {
@@ -34,13 +40,24 @@ func (c *UserController) DoLogin() {
 		beego.Info(err)
 	} else {
 		uinfo := models.FindUser(u.Username, u.Password)
-        fmt.Println(uinfo)
+		fmt.Println(uinfo)
 		if uinfo.Id > 0 {
-            c.Ctx.WriteString("UID:" + strconv.FormatInt(uinfo.Id, 10))
+			uinfo.Logintime = time.Now().Unix()
+			models.UpUser(uinfo)
+            /*
+			sess, _ := globalSession.SessionStart(c.Ctx.ResponseWriter, c.Ctx.Request)
+			sess.Set("uid", uinfo.Id)
+			sess.Set("username", uinfo.Username)
+            */
+
+            session := c.StartSession()
+            session.Set("uid", uinfo.Id)
+
+			c.Ctx.WriteString("UID:" + strconv.FormatInt(uinfo.Id, 10))
 		} else {
-            c.Ctx.WriteString("Login Failed.")
-        }
-    }
+			c.Ctx.WriteString("Login Failed.")
+		}
+	}
 }
 
 func (c *UserController) Reg() {

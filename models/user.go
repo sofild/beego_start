@@ -54,6 +54,17 @@ func FindUser(username string, password string) User {
 	return user
 }
 
+func UpUser(userInfo User) bool {
+	o := orm.NewOrm()
+	o.Using("default")
+
+	_, err := o.Update(&userInfo)
+	if err != nil {
+		return false
+	}
+	return true
+}
+
 func MD5(text string) string {
 	ctx := md5.New()
 	ctx.Write([]byte(text))
